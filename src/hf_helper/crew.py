@@ -1,7 +1,11 @@
-from crewai import Agent, Crew, Process, Task
-from crewai.project import CrewBase, agent, crew, task
-from crewai.agents.agent_builder.base_agent import BaseAgent
+from pathlib import Path
 from typing import List
+
+from crewai import Agent, Crew, Process, Task
+from crewai.agents.agent_builder.base_agent import BaseAgent
+from crewai.project import CrewBase, agent, crew, task
+
+from hf_helper.tools.custom_tool import HuggingFaceModelInfoTool
 # If you want to run a snippet of code before or after the crew starts,
 # you can use the @before_kickoff and @after_kickoff decorators
 # https://docs.crewai.com/concepts/crews#example-crew-class-with-decorators
@@ -13,6 +17,11 @@ class HfHelper:
 
     agents: List[BaseAgent]
     tasks: List[Task]
+
+    def __init__(self) -> None:
+        self._hf_model_tool = HuggingFaceModelInfoTool()
+        self._artifacts_dir = Path("artifacts")
+        self._artifacts_dir.mkdir(exist_ok=True)
 
     # Learn more about YAML configuration files here:
     # Agents: https://docs.crewai.com/concepts/agents#yaml-configuration-recommended
@@ -32,6 +41,7 @@ class HfHelper:
         return Agent(
             config=self.agents_config["huggingface_specialist"],  # type: ignore[index]
             verbose=True,
+            tools=[self._hf_model_tool],
         )
 
     @agent
@@ -58,9 +68,10 @@ class HfHelper:
 
     @task
     def judge_task(self) -> Task:
+        output_path = self._artifacts_dir / "recommendations.md"
         return Task(
             config=self.tasks_config["judge_task"],  # type: ignore[index]
-            output_file="recommendations.md",
+            output_file=str(output_path),
         )
 
     @crew

@@ -28,8 +28,8 @@ All present agents @agents.yaml file should be deleted and replaced with new one
 
 - Hardware Agent: gathers all the hardware specs
 - HugginFace Specialist: looks for best LLM models that will work on that hardware and picks 10
-- Judge: Decides which are the top 5 models and provides pros and cons.
+- Judge: Decides which are the top 5 models and provides pros and cons, saving the final Markdown table to `artifacts/recommendations.md` for the frontend to consume.
 
 ### Frontend
 
-Streamlit is the recommended platform for the first UI iteration because it keeps everything in Python, lets us build validated forms quickly, and deploys easily to HuggingFace Spaces alongside the referenced models. See `docs/frontend_proposal.md` for the detailed comparison against Gradio and React.
+Streamlit is the recommended platform for the first UI iteration because it keeps everything in Python, lets us build validated forms quickly (leveraging the normalization logic in `src/hf_helper/inputs.py`), and deploys easily to HuggingFace Spaces alongside the referenced models. See `docs/frontend_proposal.md` for the detailed comparison against Gradio and React.

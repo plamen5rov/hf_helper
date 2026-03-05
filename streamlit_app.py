@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import streamlit as st
 
 from hf_helper.crew import HfHelper
-from hf_helper.inputs import default_inputs
+from hf_helper.inputs import build_inputs, default_inputs
 
 USAGE_OPTIONS = [
     "chat assistant",
@@ -20,6 +20,7 @@ USAGE_OPTIONS = [
 
 
 st.set_page_config(page_title="HF Helper Recommender", layout="wide")
+st.session_state.setdefault("run_history", [])
 
 
 def _kickoff(inputs: Dict[str, str]) -> Any:
@@ -27,15 +28,22 @@ def _kickoff(inputs: Dict[str, str]) -> Any:
     return crew.kickoff(inputs=inputs)
 
 
-def _load_recommendations() -> str | None:
-    path = Path("recommendations.md")
+def _load_recommendations(path: Path) -> str | None:
     if path.exists():
         return path.read_text(encoding="utf-8")
     return None
 
 
+def _history_table(history: List[Dict[str, str]]) -> None:
+    if not history:
+        return
+    st.subheader("Recent Runs")
+    st.dataframe(history[-5:], use_container_width=True)
+
+
 def main() -> None:
     defaults = default_inputs()
+    artifact_path = Path("artifacts/recommendations.md")
 
     st.title("Hardware-Aware HuggingFace Recommender")
     st.write(
@@ -69,22 +77,28 @@ def main() -> None:
                     "Describe your usage", "retrieval-augmented agent"
                 )
 
-        submitted = st.form_submit_button("Recommend Models")
+        submitted = st.form_submit_button("Recommend Models", use_container_width=True)
 
     if not submitted:
         st.info("Fill in your specs and click Recommend Models to run the crew.")
         return
 
     usage_value = custom_usage or usage_choice
-    inputs = {
-        "gpu": gpu.strip(),
-        "cpu": cpu.strip(),
-        "ram": ram.strip(),
-        "storage": storage.strip(),
-        "operating_system": operating_system.strip(),
-        "usage": usage_value.strip() or defaults["usage"],
-        "current_year": str(datetime.now().year),
+    overrides = {
+        "gpu": (gpu or "").strip(),
+        "cpu": (cpu or "").strip(),
+        "ram": (ram or "").strip(),
+        "storage": (storage or "").strip(),
+        "operating_system": (operating_system or "").strip(),
+        "usage": (usage_value or "").strip() or defaults["usage"],
+        "current_year": datetime.now().year,
     }
+
+    try:
+        inputs = build_inputs(overrides)
+    except ValueError as exc:
+        st.error(f"Input validation failed: {exc}")
+        return
 
     with st.spinner("Running crew... this may take a minute"):
         try:
@@ -94,6 +108,14 @@ def main() -> None:
             return
 
     st.success("Recommendation run complete")
+    st.session_state.run_history.append(
+        {
+            "gpu": inputs["gpu"],
+            "cpu": inputs["cpu"],
+            "usage": inputs["usage"],
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+    )
 
     st.subheader("Crew Output")
     if isinstance(result, dict):
@@ -101,7 +123,7 @@ def main() -> None:
     else:
         st.write(result)
 
-    rendered = _load_recommendations()
+    rendered = _load_recommendations(artifact_path)
     if rendered:
         st.subheader("Top 5 Recommendations")
         st.markdown(rendered)
@@ -113,6 +135,8 @@ def main() -> None:
         )
     else:
         st.warning("recommendations.md not found yet. Check the logs for details.")
+
+    _history_table(st.session_state.run_history)
 
 
 if __name__ == "__main__":

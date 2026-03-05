@@ -3,7 +3,8 @@ gather_hardware_task:
     Collect and validate the user's GPU, CPU, RAM, storage capacity, and
     operating system information, plus their intended model usage (chat, code,
     image, etc.). Flag any incomplete or conflicting inputs and normalize their
-    wording so downstream agents can rely on structured specs.
+    wording (GB/TB units, OS names) so downstream agents can rely on structured
+    specs.
   expected_output: >
     A structured hardware profile summarizing each component, any constraints,
     and the primary model usage category.
@@ -14,7 +15,9 @@ scout_models_task:
     Using the validated hardware profile, identify 10 HuggingFace models that
     can run locally with acceptable performance for the requested usage. Include
     quantization notes, minimum VRAM/CPU expectations, and why each candidate is
-    a fit for the provided specs.
+    a fit for the provided specs. Call the `huggingface_model_info` tool whenever
+    you need live metadata (downloads, likes, license, model cards) to support
+    your shortlist.
   expected_output: >
     A ranked shortlist of 10 compatible HuggingFace models with key metrics and
     compatibility notes tied to the hardware profile.
@@ -24,7 +27,9 @@ judge_task:
   description: >
     Review the shortlist, weigh trade-offs, and select the top 5 models. Provide
     concise pros and cons for every pick, highlighting any deployment caveats
-    or configuration tweaks needed for the hardware environment.
+    or configuration tweaks needed for the hardware environment. Format the
+    output as a Markdown table followed by actionable setup notes, since it will
+    be saved to artifacts/recommendations.md.
   expected_output: >
     A recommendations report describing the final 5 models with pros, cons, and
     any action items to get them running on the user's hardware.

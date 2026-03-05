@@ -7,7 +7,13 @@ requires-python = ">=3.10,<3.14"
 dependencies = [
     "crewai[tools]==1.9.3",
     "litellm>=1.37.6,<2.0",
-    "streamlit>=1.33,<2.0"
+    "streamlit>=1.33,<2.0",
+    "requests>=2.31,<3.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9.0",
 ]
 
 [project.scripts]
@@ -17,6 +23,7 @@ train = "hf_helper.main:train"
 replay = "hf_helper.main:replay"
 test = "hf_helper.main:test"
 run_with_trigger = "hf_helper.main:run_with_trigger"
+start_app = "hf_helper.launch:start"
 
 [build-system]
 requires = ["hatchling"]

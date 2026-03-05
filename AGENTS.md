@@ -15,6 +15,7 @@ Guide for autonomous contributors working in this repo. Treat it as the source o
 - `src/hf_helper/config/agents.yaml` — agent personas keyed by `researcher` and `reporting_analyst`.
 - `src/hf_helper/config/tasks.yaml` — task descriptions plus expected outputs and agent bindings.
 - `src/hf_helper/tools/custom_tool.py` — template for extending crew tools using `BaseTool`.
+- `artifacts/` — runtime output directory (e.g., `recommendations.md`) created automatically.
 - `knowledge/` — supplemental context (currently `user_preference.txt`). Keep personally identifying info here if needed.
 - `tests/` — placeholder package for automated tests (empty today; add modules here).
 - `.env` — user-managed secrets (e.g., `OPENAI_API_KEY`). Never commit.
@@ -28,13 +29,14 @@ Guide for autonomous contributors working in this repo. Treat it as the source o
 - For local experimentation with alternative LLM providers, export their keys in the shell just-in-time instead of storing them in the repo.
 
 ## Build & Execution Commands
-- **Run crew with defaults:** `uv run crewai run` (loads configs, uses inputs embedded in tasks).
+- **One-line app launch:** `uv run start_app --port 8501` boots the Streamlit UI and backend in one go (use `--no-browser` for headless servers).
+- **Run crew with defaults:** `uv run crewai run` (loads configs, uses inputs embedded in tasks). Reports land in `artifacts/recommendations.md`.
 - **Run via module entry point:** `uv run hf_helper` (alias for `hf_helper.main:run`).
 - **Pass dynamic inputs:** `uv run crewai run --inputs-file path/to/inputs.json` or adjust `inputs` dict in `main.py` before running.
 - **Train loop:** `uv run train 3 logs/training.jsonl` (arguments: iterations, output filename).
 - **Replay a task:** `uv run replay <task_id>` (task ID taken from prior run artifacts).
 - **Evaluate/test crew:** `uv run test 3 gpt-4o-mini` (iterations + eval LLM name).
-- **Trigger mode:** `uv run run_with_trigger '{"topic": "LLM safety"}'` (stringified JSON payload as first arg).
+- **Trigger mode:** `uv run run_with_trigger '{"topic": "LLM safety"}'` (stringified JSON payload as first arg) or `uv run run_with_trigger --payload-file path/to/payload.json`. Arg parsing now uses `argparse`, so named flags are available.
 - **Packaging build:** `uv build` (produces wheel + sdist using hatchling; required before publishing to an index).
 - Prefer `uv run python -m hf_helper.main` when you need to call specific helper functions for ad-hoc automation scripts.
 
@@ -49,7 +51,8 @@ Guide for autonomous contributors working in this repo. Treat it as the source o
 - Document tooling gaps in PR descriptions if you introduce a new formatter or static analysis tool so the next agent can add it here.
 
 ## Testing Workflow
-- Testing stack is `pytest`. Add `pytest` to your environment (`uv add --dev pytest` or `uv pip install pytest` if needed) until it becomes part of the project metadata.
+- Testing stack is `pytest`. Add `pytest` to your environment (`uv add --dev pytest` or `uv pip install pytest`) — metadata already exposes `pytest` under the `dev` optional dependency for convenience.
+- Sample unit tests live in `tests/test_inputs.py` and cover the `HardwareInputs` validators; follow that pattern for future utilities.
 - **Run complete suite:** `uv run pytest` (default discovery under `tests/`).
 - **Focused file:** `uv run pytest tests/test_agent_logic.py`.
 - **Single test function:** `uv run pytest tests/test_agent_logic.py -k test_handles_empty_prompt` (preferred way to satisfy "single test" requirement).
@@ -93,7 +96,7 @@ Guide for autonomous contributors working in this repo. Treat it as the source o
 - Never swallow exceptions silently; at minimum re-raise with additional context.
 
 ## Configuration & Secrets
-- Keep agent/task definitions declarative in `config/`. Update YAML instead of hardcoding values inside Python.
+- Keep agent/task definitions declarative in `config/`. Update YAML instead of hardcoding values inside Python; the HuggingFace model scout now expects the `huggingface_model_info` tool to be available per `agents.yaml`.
 - Use placeholders (`{topic}`, `{current_year}`) consistently; document any new placeholders at the top of the YAML file you touch.
 - Secrets belong in `.env` and are loaded by crewAI automatically. Never bake tokens into code or sample configs committed to git.
 - If you add provider-specific settings (e.g., Anthropic keys), gate them behind environment checks and document them here.
